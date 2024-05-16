@@ -99,3 +99,158 @@ end
 Seven_Seg SDC(en, numbers, sel, segments, anode_active);
 
 endmodule
+
+
+
+
+`timescale 1ns / 1ps
+//////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer: 
+// 
+// Create Date: Today's Date
+// Design Name: Digital Alarm Clock with Buzzer and AM/PM Indicators
+// Module Name: Digital_Clock
+// Project Name: Digital Alarm Clock for BASYS3 Board
+// Target Devices: BASYS3
+// Tool Versions: 
+// Description: Implements a digital alarm clock with an alarming sound using a buzzer and AM/PM indicators.
+// 
+// Dependencies: Clock_Divider, Hours_Mins_Secs, MUX_4X1, Seven_Seg, Mod_N_Counter, Pushbutton_detector
+// 
+// Revision:
+// Revision 0.01 - File Created
+// Additional Comments:
+// 
+//////////////////////////////////////////////////////////////////////////////////
+
+module Digital_Clock(
+    input clk, reset,
+    input BTNC, BTNR, BTNL, BTNU, BTND,  // Push buttons on the Basys3 board
+    output [6:0] seg,                    // Seven segment display outputs
+    output [3:0] an,                     // Anode signals for seven segment display
+    output reg DP,                       // Decimal Point for blinking
+    output reg [7:0] led,                // LEDs for indicating the mode, selection, and AM/PM
+    output reg buzzer                    // Output to control the buzzer
+);
+
+// Internal signals
+wire clk_1hz, clk_fast, clk_buzzer; // Clock signals for timing and controls
+reg [4:0] hours = 12, minutes = 0; // Time storage (increased width to accommodate 24 hours format)
+reg [4:0] alarm_hours = 6, alarm_minutes = 0; // Alarm time storage
+reg [1:0] adjust_selection = 0; // 0: Time Hours, 1: Time Minutes, 2: Alarm Hours, 3: Alarm Minutes
+reg mode = 0; // 0: Clock/Alarm, 1: Adjust
+reg [1:0] display_select; // Selects which part of the time to display
+
+// Instantiate clock dividers
+Clock_Divider #(50000000) div1(clk, reset, clk_1hz); // 1 Hz clock
+Clock_Divider #(100000) div2(clk, reset, clk_fast); // Faster clock for debouncing and display
+Clock_Divider #(50000) div_buzzer(clk, reset, clk_buzzer); // Clock for buzzer at 1 kHz
+
+// Button detectors for each button
+wire debounced_BTNC, debounced_BTNR, debounced_BTNL, debounced_BTNU, debounced_BTND;
+Pushbutton_detector detC(clk_fast, BTNC, reset, debounced_BTNC);
+Pushbutton_detector detR(clk_fast, BTNR, reset, debounced_BTNR);
+Pushbutton_detector detL(clk_fast, BTNL, reset, debounced_BTNL);
+Pushbutton_detector detU(clk_fast, BTNU, reset, debounced_BTNU);
+Pushbutton_detector detD(clk_fast, BTND, reset, debounced_BTND);
+
+// Alarm condition to trigger the buzzer
+reg alarm_active = 0; // Signal to activate the buzzer
+
+// State machine for mode control and time adjustment
+always @(posedge clk_1hz or posedge reset) begin
+    if (reset) begin
+        hours <= 12; minutes <= 0;
+        alarm_hours <= 6; alarm_minutes <= 0;
+        mode <= 0; // Start in clock/alarm mode
+        adjust_selection <= 0;
+        alarm_active <= 0;
+        buzzer <= 0;
+    end else begin
+        if (mode == 0) begin // Clock/Alarm mode
+            if (debounced_BTNC) mode <= 1; // Switch to adjust mode
+            else begin
+                minutes <= minutes + 1;
+                if (minutes >= 60) begin
+                    minutes <= 0;
+                    hours <= hours + 1;
+                    if (hours >= 24) hours <= 0;
+                end
+                // Check alarm
+                if (hours == alarm_hours && minutes == alarm_minutes)
+                    alarm_active <= 1; // Set alarm active
+                else
+                    alarm_active <= 0;
+            end
+        end else if (mode == 1) begin // Adjust mode
+            if (debounced_BTNC) mode <= 0; // Return to clock/alarm mode
+            if (debounced_BTNR) adjust_selection <= adjust_selection + 1;
+            if (debounced_BTNL) adjust_selection <= adjust_selection - 1;
+            if (adjust_selection > 3) adjust_selection <= 0;
+
+            // Handle increment/decrement of time/alarm
+            if (debounced_BTNU) begin
+                case (adjust_selection)
+                    0: hours <= (hours < 23 ? hours + 1 : 0);
+                    1: minutes <= (minutes < 59 ? minutes + 1 : 0);
+                    2: alarm_hours <= (alarm_hours < 23 ? alarm_hours + 1 : 0);
+                    3: alarm_minutes <= (alarm_minutes < 59 ? alarm_minutes + 1 : 0);
+                endcase
+            end
+            if (debounced_BTND) begin
+                case (adjust_selection)
+                    0: hours <= (hours > 0 ? hours - 1 : 23);
+                    1: minutes <= (minutes > 0 ? minutes - 1 : 59);
+                    2: alarm_hours <= (alarm_hours > 0 ? alarm_hours - 1 : 23);
+                    3: alarm_minutes <= (alarm_minutes > 0 ? alarm_minutes - 1 : 59);
+                endcase
+            end
+        end
+    end
+end
+
+// Buzzer control logic
+always @(posedge clk_buzzer) begin
+    if (alarm_active)
+        buzzer <= ~buzzer; // Toggle the buzzer output to generate a sound
+    else
+        buzzer <= 0; // Ensure buzzer is off when not alarming
+end
+
+// Display control logic for the 7-segment display
+Hours_Mins_Secs time_logic(clk_1hz, reset, 1'b1, 1'b1, {hours, minutes, alarm_hours, alarm_minutes});
+MUX_4X1 display_mux(hours, minutes, alarm_hours, alarm_minutes, display_select, seg);
+
+// Blinking decimal point control in clock/alarm mode
+always @(posedge clk_1hz) begin
+    if (mode == 0) DP <= ~DP; // Toggle DP at 1 Hz
+    else DP <= 1; // Keep DP off in adjust mode
+end
+
+// LED indicators for mode, adjust selection, and AM/PM
+always @(posedge clk or posedge reset) begin
+    if (reset) begin
+        led <= 8'b0;
+    end else begin
+        // Mode indicator
+        led[0] <= mode; // LED on if in adjust mode
+
+        // Adjust selection indicator
+        case (adjust_selection)
+            0: led[4:1] <= 4'b0001; // Time Hours
+            1: led[4:1] <= 4'b0010; // Time Minutes
+            2: led[4:1] <= 4'b0100; // Alarm Hours
+            3: led[4:1] <= 4'b1000; // Alarm Minutes
+            default: led[4:1] <= 4'b0000;
+        endcase
+
+        // AM/PM indicator
+        if (hours < 12)
+            led[6:5] <= 2'b01; // AM
+        else
+            led[6:5] <= 2'b10; // PM
+    end
+end
+
+endmodule
