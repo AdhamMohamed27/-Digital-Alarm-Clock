@@ -24,12 +24,12 @@ parameter [2:0]
     Adjust_hours_alarm = 3'b101;
 
 wire BTNC, BTNR, BTNL, BTNU, BTND;
-genvar i;
-generate 
-    for(i=0; i<10; i=i+1) begin
-        Pushbutton_detector pbutton(.clk(clk_out), .rst(reset), .pushB(pushB[i]), .out(outbutton[i]));
-    end
-endgenerate
+
+Pushbutton_detector pbuttonC(.clk(clk_out), .rst(reset), .pushB(BTNC), .out(outbutton[i]));
+Pushbutton_detector pbuttonR(.clk(clk_out), .rst(reset), .pushB(BTNR), .out(outbutton[i]));
+Pushbutton_detector pbuttonL(.clk(clk_out), .rst(reset), .pushB(BTNL), .out(outbutton[i]));
+Pushbutton_detector pbuttonU(.clk(clk_out), .rst(reset), .pushB(BTNU), .out(outbutton[i]));
+Pushbutton_detector pbuttonD(.clk(clk_out), .rst(reset), .pushB(BTND), .out(outbutton[i]));
 
 always @ (*) 
     case (state)
