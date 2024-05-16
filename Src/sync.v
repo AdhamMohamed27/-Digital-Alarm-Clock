@@ -20,7 +20,9 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 
-module sync(
+module sync(input clk, input sig, output sig1);
+wire meta;
+dflipflop stage1(.clk(clk),.d(sig),.q(meta));
+dflipflop stage2(.clk(clk),.d(meta),.q(sig1));
 
-    );
 endmodule
