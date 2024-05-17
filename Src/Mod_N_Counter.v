@@ -20,21 +20,29 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 
-module Mod_N_Counter #(parameter x=4,n=10)(input clk, reset,en,Up_Down_en, output reg [x-1:0]count);
+module Mod_N_Counter #(parameter x=4,n=10)(input clk, reset, en, Up_Down_en, output reg [(x-1):0] count);
 
-always @(posedge clk, posedge reset) begin 
- if (reset == 1)
-    count <= 0; // non-blocking assignment 
- // initialize flip flop here
- else begin 
- if(en) begin 
-     if(count==n-1)
-        count <=0;
-     else
-        count <= count + 1; // non-blocking assignment 
-     end
- end
- // normal operation 
-end
+    always @(posedge clk, posedge reset)begin
+        if (reset == 1)
+            count<= 0;
+        else begin
+            if (en == 1)begin
+                if(Up_Down_en ==1) begin
+                    if (count < n - 1)
+                        count <= count + 1;
+                    else if (count == n - 1)
+                        count<= 0;
+                 end
+                 else begin
+                    if (count > 0)
+                        count <= count - 1;
+                    else if( count == 0)
+                        count <= n-1;
+                 end
+            end
+            else 
+                count <= count;
+        end
+   end
+
 endmodule
-
