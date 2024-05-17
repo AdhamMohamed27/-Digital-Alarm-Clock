@@ -55,8 +55,8 @@ Pushbutton_detector pbuttonD(.clk(clk_200), .rst(reset), .pushB(BTND), .out(outb
 Clock_Divider #(5000000) clockdiv_1hz(clk,reset,clk_1hz);
 Clock_Divider #(250000) clock200 (clk,reset,clk_200);
 
-reg clk_input;
-always @ (*) 
+ reg clk_input;  //If you remove any state regarding the Adjust_hours_clock, the increment/decrement works as intended of the the Minutes coubter, however the error to be resolved regarding the Adjust_hours_clock.
+ always @ (*)   // If you manage to solve the error you repeat the moduol Hours_Mins_Secs again for the alarm state and work your way in the State machine updating the states regarding the alarm. 
 case (state)
 Clock_State: 
     if(outbutton ==5'b00001) begin 
