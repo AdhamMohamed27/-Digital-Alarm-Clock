@@ -28,16 +28,16 @@ module Mod_N_Counter #(parameter x=4,n=10)(input clk, reset, en, Up_Down_en, out
         else begin
             if (en == 1)begin
                 if(Up_Down_en ==1) begin
-                    if (count < n - 1)
-                        count <= count + 1;
-                    else if (count == n - 1)
-                        count<= 0;
+                    if (count == n - 1)
+                        count <= 0;
+                    else
+                        count<= count + 1;
                  end
                  else begin
-                    if (count > 0)
+                    if (count == 0)
+                        count <=  n-1;
+                    else
                         count <= count - 1;
-                    else if( count == 0)
-                        count <= n-1;
                  end
             end
             else 
