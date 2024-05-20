@@ -26,3 +26,6 @@ dflipflop stage1(.clk(clk),.d(sig),.q(meta));
 dflipflop stage2(.clk(clk),.d(meta),.q(sig1));
 
 endmodule
+
+
+

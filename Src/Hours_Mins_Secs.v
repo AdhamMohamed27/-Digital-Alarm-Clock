@@ -1,44 +1,80 @@
 `timescale 1ns / 1ps
-//////////////////////////////////////////////////////////////////////////////////
-// Company: 
-// Engineer: 
-// 
-// Create Date: 05/15/2024 02:48:48 PM
-// Design Name: 
-// Module Name: Hours_Mins_Secs
-// Project Name: 
-// Target Devices: 
-// Tool Versions: 
-// Description: 
-// 
-// Dependencies: 
-// 
-// Revision:
-// Revision 0.01 - File Created
-// Additional Comments:
-// 
-//////////////////////////////////////////////////////////////////////////////////
 
 
-module Hours_Mins_Secs
-(input clk, rst,en,Up_Down_en, output [12:0]count);
+module Hours_Mins_Secs (
+    input clk, rst, en, enh, enm, Up_Down_en,
+    output [12:0] count,
+    output [3:0] sec_units,
+    output [2:0] sec_tens
+);
 
 
-wire [3:0] c1;
-wire [2:0] c2;
-wire [3:0] c3;
-wire [1:0] c4;
-wire clk_out;
+wire [3:0] min_units;
+wire [2:0] min_tens;
+wire [3:0] hour_units;
+wire [1:0] hour_tens;
+
+wire enable_min_units, enable_min_tens, enable_hour_units, enable_hour_tens;
 
 
-Clock_Divider #(700000) clock(clk, rst, clk_out);
+assign enable_min_units = en ? (sec_tens == 5 && sec_units == 9) : enm;
+assign enable_min_tens = en ? (min_units == 9 && sec_tens == 5 && sec_units == 9) : 
+                            (Up_Down_en ? (min_units == 9 ? enm : 0) : (min_units == 0 ?  (min_tens == 0 ? 0: enm): 0));
+                            
+                    
+assign enable_hour_units = en ? (min_tens == 5 && min_units == 9 && sec_tens == 5 && sec_units == 9) : enh;
 
-modTen mod_Ten(clk_out, rst,en,Up_Down_en, c1);  //0
-mod_Six mod_Six(clk_out, rst,en&&c1==9,Up_Down_en, c2); //1
-modTen mod_Ten1(clk_out, rst||(c4==2&&c3==4),en&&c1==9&&c2==5,Up_Down_en, c3);  //0
-modThree mod_three(clk_out, rst||(c4==2&&c3==4),en&&c1==9&&c2==5&&c3==9,Up_Down_en, c4); //1
+assign enable_hour_tens = en ? (hour_units == 9 && min_tens == 5 && min_units == 9 && sec_tens == 5 && sec_units == 9) : 
+                           (Up_Down_en ? (hour_units == 9 ? enh : 0) : (hour_units == 0 ? (hour_tens == 0 ? 0: enh): 0));
 
+modTen mod_secs(
+    .clk(clk), 
+    .rst(rst), 
+    .en(en), 
+    .Up_Down_en(Up_Down_en), 
+    .count(sec_units)
+);
 
-assign count = {c4, c3, c2, c1};
+mod_Six mod_secs_tens(
+    .clk(clk), 
+    .rst(rst), 
+    .en(en && sec_units == 9), 
+    .Up_Down_en(Up_Down_en), 
+    .count(sec_tens)
+);
+
+modTen mod_Ten_min_units(
+    .clk(clk), 
+    .rst(rst), 
+    .en(enable_min_units), 
+    .Up_Down_en(Up_Down_en), 
+    .count(min_units)
+);
+
+mod_Six mod_Six_min_tens(
+    .clk(clk), 
+    .rst(rst), 
+    .en(enable_min_tens), 
+    .Up_Down_en(Up_Down_en), 
+    .count(min_tens)
+);
+
+modTen mod_Ten_hour_units(
+    .clk(clk), 
+    .rst(rst || (hour_tens == 2 && hour_units == 4)), 
+    .en(enable_hour_units), 
+    .Up_Down_en(Up_Down_en), 
+    .count(hour_units)
+);
+
+modThree mod_three_hour_tens(
+    .clk(clk), 
+    .rst(rst || (hour_tens == 2 && hour_units == 4)), 
+    .en(enable_hour_tens), 
+    .Up_Down_en(Up_Down_en), 
+    .count(hour_tens)
+);
+
+assign count = {hour_tens, hour_units, min_tens, min_units};
 
 endmodule
