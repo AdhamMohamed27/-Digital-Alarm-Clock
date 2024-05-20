@@ -349,11 +349,11 @@ Adjust_mins_clock:
             match=0;
         end
          else if (outbutton == 5'b00100) begin  // BTNL
-            nextState = Adjust_hours_alarm;
+            nextState = Adjust_hours_clock;
             clk_input = clk_200;
             led[0] = 1'b1; 
             led[1] = 1'b0;
-            led[2] = 1'b0;
+            led[2] = 1'b1;
             enMins = 0;
             enHours = 0;
             led[4] = 1'b0;
@@ -448,16 +448,16 @@ Adjust_mins_alarm:
             match=0;
         end   
          else if (outbutton == 5'b00100) begin  // BTNL
-            nextState = Adjust_hours_clock;
+            nextState = Adjust_hours_alarm;
             clk_input = clk_200;
             led[0] = 1'b1; 
             led[1] = 1'b0;
-            led[2] = 1'b1;
+            led[2] = 1'b0;
             Up_Down_en = 1;
             enMins = 0;
             enHours = 0;
             led[3] = 1'b0;
-            led[4] = 1'b0;
+            led[4] = 1'b1;
             enable_clock = 0;
              enMins_a = 0;
             enHours_a = 0;
